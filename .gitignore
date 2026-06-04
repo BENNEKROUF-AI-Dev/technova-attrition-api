@@ -1,0 +1,51 @@
+# ── Python ──────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ── Environnements virtuels ─────────────────────────────
+.venv/
+venv/
+env/
+.python-version
+
+# ── Secrets / configuration locale ──────────────────────
+# On ne committe JAMAIS le vrai .env (cf. .env.example versionné à la place)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ── Données (ne pas versionner les jeux de données bruts) ─
+data/
+*.csv
+*.tsv
+*.parquet
+# Exception : petits jeux d'exemple volontairement versionnés
+!db/sample_data.csv
+
+# ── Modèles entraînés (artefacts lourds) ────────────────
+models/*.pkl
+models/*.joblib
+models/*.onnx
+# On garde le dossier dans Git grâce au .gitkeep
+!models/.gitkeep
+
+# ── Tests / couverture ──────────────────────────────────
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# ── Jupyter ─────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ── IDE / OS ────────────────────────────────────────────
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
