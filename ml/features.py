@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import pandas as pd
 
-
 SATISFACTION_COLS = [
     "satisfaction_employee_environnement",
     "satisfaction_employee_nature_travail",
