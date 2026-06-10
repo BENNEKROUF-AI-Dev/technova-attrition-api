@@ -1,0 +1,3 @@
+-- Schéma de la base PostgreSQL (à compléter à l'étape base de données).
+-- Idée : une table des prédictions (inputs du modèle + output + horodatage).
+-- TODO : CREATE TABLE predictions (...);
