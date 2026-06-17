@@ -1,3 +1,13 @@
+---
+title: TechNova Attrition API
+emoji: 📉
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # TechNova Attrition API
 
 Déploiement en production d'un modèle de Machine Learning de **prédiction de l'attrition** (probabilité de démission d'un employé), pour le client **Futurisys** / **TechNova Partners**.
