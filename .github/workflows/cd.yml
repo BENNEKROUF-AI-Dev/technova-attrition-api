@@ -1,0 +1,28 @@
+name: CD — Déploiement Hugging Face Spaces
+
+# Déploiement en production à chaque fusion sur main (ou manuellement).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Déploiement (production)
+    runs-on: ubuntu-latest
+    environment: production       # environnement GitHub "production" (secrets dédiés)
+    steps:
+      - name: Récupérer tout l'historique
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Pousser le code vers le Space Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}        # secret (write) — à créer dans GitHub
+          HF_USERNAME: ${{ vars.HF_USERNAME }}     # variable de dépôt
+          HF_SPACE: ${{ vars.HF_SPACE }}           # variable de dépôt (nom du Space)
+        run: |
+          git push --force \
+            "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}.git" \
+            main

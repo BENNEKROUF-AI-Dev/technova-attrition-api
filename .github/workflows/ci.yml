@@ -1,23 +1,41 @@
 name: CI
 
-# TODO (étape CI/CD) : étoffer avec les environnements dev/test/prod
-# et la gestion des secrets (GitHub Secrets).
+# Tests de qualité à chaque push (toutes branches) et sur les PR vers main/develop.
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
   pull_request:
+    branches: [main, develop]
 
 jobs:
-  tests:
+  quality:
+    name: Lint & Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Python 3.11
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+          cache: pip
+
       - name: Installer les dépendances
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install ruff
+
+      - name: Linter le code (ruff)
+        run: ruff check .
+
       - name: Lancer les tests avec couverture
-        run: pytest --cov=app --cov=ml --cov-report=term-missing
+        run: pytest --cov=app --cov=ml --cov-report=term-missing --cov-report=xml
+
+      - name: Archiver le rapport de couverture
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
