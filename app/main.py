@@ -6,15 +6,18 @@ Documentation interactive : http://localhost:8000/docs
 """
 from fastapi import FastAPI
 
-from app.config import settings
+from app.routers import predictions
 
-app = FastAPI(title=settings.api_title, version=settings.api_version)
+app = FastAPI(
+    title="TechNova Attrition API",
+    version="1.0.0",
+    description="Prédit le risque de démission d'un employé à partir de ses données RH.",
+)
+
+app.include_router(predictions.router)
 
 
 @app.get("/health", tags=["monitoring"])
 def health_check() -> dict:
     """Vérifie que l'API répond."""
-    return {"status": "ok", "env": settings.app_env}
-
-
-# TODO : app.include_router(predictions.router) une fois l'étape API faite
+    return {"status": "ok"}

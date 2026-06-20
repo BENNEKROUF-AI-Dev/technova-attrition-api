@@ -1,0 +1,16 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+.git/
+.github/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+tests/
+*.ipynb
+data/
+models/*.pkl
+!models/attrition_model.joblib

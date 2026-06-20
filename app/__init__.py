@@ -1,1 +1,1 @@
-"""Package applicatif de l'API d'attrition."""
+"""Package applicatif de l\x27API d\x27attrition."""
