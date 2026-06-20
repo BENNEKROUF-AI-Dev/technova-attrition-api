@@ -1,1 +1,1 @@
-"""Package des tests (Pytest)."""
+"""Package des tests."""
