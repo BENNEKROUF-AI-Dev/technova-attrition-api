@@ -29,5 +29,8 @@ python-dotenv>=1.0,<2.0
 
 imbalanced-learn>=0.12,<1.0
 
+SQLAlchemy>=2.0,<3.0
+   psycopg2-binary>=2.9,<3.0
+
 # Note : pour figer les versions exactes une fois l'environnement stable,
 #        lancez `pip freeze > requirements.lock.txt`.

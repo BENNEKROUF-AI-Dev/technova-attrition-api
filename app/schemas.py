@@ -12,6 +12,9 @@ class EmployeeInput(BaseModel):
     Chaque champ est typé et validé. Les variables catégorielles n'acceptent
     que les modalités vues à l'entraînement (sinon l'API renvoie une erreur 422).
     """
+    # Optionnel : relie la prédiction à la table `dataset` (clé étrangère).
+    employee_id: int | None = Field(default=None, examples=[1])
+
     # ── SIRH ────────────────────────────────────────────────
     age: int = Field(..., ge=18, le=70, examples=[41])
     genre: Literal["F", "M"]
