@@ -1,4 +1,4 @@
-"""Endpoint de prédiction : prédit, puis journalise en base."""
+"""Endpoint de prédiction (protégé par JWT) : prédit, puis journalise en base."""
 import logging
 import time
 
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.model import predict_one
 from app.schemas import EmployeeInput, PredictionOutput
+from app.security import get_current_user
 from db import models
 from db.database import get_db
 
@@ -15,15 +16,18 @@ logger = logging.getLogger("uvicorn.error")
 
 
 @router.post("/predict", response_model=PredictionOutput)
-def predict(employee: EmployeeInput, db: Session = Depends(get_db)) -> PredictionOutput:
+def predict(
+    employee: EmployeeInput,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user),   # exige un jeton valide
+) -> PredictionOutput:
     """Prédit le risque de démission et journalise l'appel (prediction + monitoring)."""
     t0 = time.perf_counter()
     data = employee.model_dump()
-    employee_id = data.pop("employee_id", None)   # champ optionnel, pas une feature
+    employee_id = data.pop("employee_id", None)
 
     result = predict_one(data)
 
-    # Journalisation en base (sans casser la réponse si la base est indisponible)
     try:
         pred = models.Prediction(
             employee_id=employee_id,
