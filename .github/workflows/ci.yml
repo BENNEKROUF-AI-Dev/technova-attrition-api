@@ -31,11 +31,12 @@ jobs:
         run: ruff check .
 
       - name: Lancer les tests avec couverture
-        run: pytest --cov=app --cov=ml --cov-report=term-missing --cov-report=xml
-
+        run: pytest --cov=app --cov=ml --cov=db --cov-report=term-missing --cov-report=xml --cov-report=html
       - name: Archiver le rapport de couverture
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage.xml
+          path: |
+            coverage.xml
+            htmlcov/
