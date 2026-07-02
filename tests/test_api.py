@@ -1,11 +1,16 @@
 """Tests de l'API (Pytest + TestClient)."""
-from fastapi.testclient import TestClient
+import os
 
-from app.main import app
+os.environ.setdefault("API_USERNAME", "admin")
+os.environ.setdefault("API_PASSWORD", "secret123")
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-key")
+
+from fastapi.testclient import TestClient  # noqa: E402
+
+from app.main import app  # noqa: E402
 
 client = TestClient(app)
 
-# Un employé valide de référence (sert de base aux tests)
 EMPLOYE_VALIDE = {
     "age": 41, "genre": "F", "revenu_mensuel": 5993, "statut_marital": "Célibataire",
     "departement": "Commercial", "poste": "Cadre Commercial",
@@ -22,6 +27,11 @@ EMPLOYE_VALIDE = {
 }
 
 
+def _auth_headers() -> dict:
+    r = client.post("/token", data={"username": "admin", "password": "secret123"})
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}
+
+
 def test_health_check():
     response = client.get("/health")
     assert response.status_code == 200
@@ -29,7 +39,7 @@ def test_health_check():
 
 
 def test_predict_employe_valide():
-    response = client.post("/predict", json=EMPLOYE_VALIDE)
+    response = client.post("/predict", json=EMPLOYE_VALIDE, headers=_auth_headers())
     assert response.status_code == 200
     body = response.json()
     assert 0.0 <= body["probabilite_demission"] <= 1.0
@@ -38,22 +48,19 @@ def test_predict_employe_valide():
 
 
 def test_predict_categorie_invalide():
-    """Une modalité catégorielle inconnue doit être rejetée (422)."""
     mauvais = dict(EMPLOYE_VALIDE, genre="X")
-    response = client.post("/predict", json=mauvais)
+    response = client.post("/predict", json=mauvais, headers=_auth_headers())
     assert response.status_code == 422
 
 
 def test_predict_champ_manquant():
-    """Un champ manquant doit être rejeté (422)."""
     incomplet = dict(EMPLOYE_VALIDE)
     del incomplet["age"]
-    response = client.post("/predict", json=incomplet)
+    response = client.post("/predict", json=incomplet, headers=_auth_headers())
     assert response.status_code == 422
 
 
 def test_predict_valeur_hors_bornes():
-    """Une valeur hors bornes (satisfaction > 4) doit être rejetée (422)."""
     hors = dict(EMPLOYE_VALIDE, satisfaction_employee_equipe=9)
-    response = client.post("/predict", json=hors)
+    response = client.post("/predict", json=hors, headers=_auth_headers())
     assert response.status_code == 422
