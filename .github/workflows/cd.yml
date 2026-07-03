@@ -1,5 +1,4 @@
 name: CD — Déploiement Hugging Face Spaces
-# Déploiement en production à chaque fusion sur main (ou manuellement).
 on:
   push:
     branches: [main]
@@ -14,18 +13,26 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Exclure les fichiers binaires non supportés par HF
-        run: |
-          git config --global user.email "ci@github.com"
-          git config --global user.name "GitHub Actions"
-          git rm --cached docs/schema_bdd.png --ignore-unmatch
-          git commit -m "chore: exclude binary PNG from HF push" --allow-empty
-      - name: Pousser le code vers le Space Hugging Face
+      - name: Pousser vers Hugging Face sans les binaires
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_USERNAME: ${{ vars.HF_USERNAME }}
           HF_SPACE: ${{ vars.HF_SPACE }}
         run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
+
+          # Supprimer le PNG du répertoire de travail
+          rm -f docs/schema_bdd.png
+
+          # Créer une branche orpheline (sans historique)
+          git checkout --orphan hf-deploy
+
+          # Stager tous les fichiers sauf le PNG
+          git add .
+          git commit -m "chore: deploy to Hugging Face"
+
+          # Pousser la branche orpheline sur main HF
           git push --force \
             "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}.git" \
-            main
+            hf-deploy:main
