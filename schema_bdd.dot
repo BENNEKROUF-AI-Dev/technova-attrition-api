@@ -1,0 +1,41 @@
+digraph schema_bdd {
+  rankdir=LR;
+  bgcolor="white";
+  node [shape=plaintext, fontname="Helvetica"];
+  edge [fontname="Helvetica", fontsize=10, color="#334155", penwidth=1.5];
+
+  dataset [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#1d4ed8" colspan="2"><font color="white"><b>dataset</b></font></td></tr>
+      <tr><td align="left"><b>PK</b></td><td align="left"><b>employee_id</b> : int</td></tr>
+      <tr><td align="left"></td><td align="left">age, genre, revenu_mensuel…</td></tr>
+      <tr><td align="left"></td><td align="left">satisfaction_*, notes, anciennete…</td></tr>
+      <tr><td align="left"></td><td align="left">cible : int (a quitte 0/1)</td></tr>
+      <tr><td align="left"><i>…</i></td><td align="left"><i>30 colonnes au total</i></td></tr>
+    </table>>];
+
+  prediction [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#0f766e" colspan="2"><font color="white"><b>prediction</b></font></td></tr>
+      <tr><td align="left"><b>PK</b></td><td align="left"><b>id</b> : int (auto)</td></tr>
+      <tr><td align="left"><b>FK</b></td><td align="left">employee_id : int</td></tr>
+      <tr><td align="left"></td><td align="left">features : json</td></tr>
+      <tr><td align="left"></td><td align="left">probabilite_demission : float</td></tr>
+      <tr><td align="left"></td><td align="left">prediction : int · risque : bool</td></tr>
+      <tr><td align="left"></td><td align="left">seuil : float · created_at : datetime</td></tr>
+    </table>>];
+
+  monitoring [label=<
+    <table border="0" cellborder="1" cellspacing="0" cellpadding="6">
+      <tr><td bgcolor="#b45309" colspan="2"><font color="white"><b>monitoring_applicatif</b></font></td></tr>
+      <tr><td align="left"><b>PK</b></td><td align="left"><b>id</b> : int (auto)</td></tr>
+      <tr><td align="left"><b>FK</b></td><td align="left">prediction_id : int</td></tr>
+      <tr><td align="left"></td><td align="left">endpoint : str · methode : str</td></tr>
+      <tr><td align="left"></td><td align="left">code_http : int</td></tr>
+      <tr><td align="left"></td><td align="left">temps_reponse_ms : float</td></tr>
+      <tr><td align="left"></td><td align="left">created_at : datetime</td></tr>
+    </table>>];
+
+  prediction -> dataset [label="employee_id\n(N..1)", arrowhead=vee];
+  monitoring -> prediction [label="prediction_id\n(N..1)", arrowhead=vee];
+}
