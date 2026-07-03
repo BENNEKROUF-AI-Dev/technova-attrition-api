@@ -16,6 +16,8 @@ jobs:
           fetch-depth: 0
       - name: Exclure les fichiers binaires non supportés par HF
         run: |
+          git config --global user.email "ci@github.com"
+          git config --global user.name "GitHub Actions"
           git rm --cached docs/schema_bdd.png --ignore-unmatch
           git commit -m "chore: exclude binary PNG from HF push" --allow-empty
       - name: Pousser le code vers le Space Hugging Face
