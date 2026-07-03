@@ -1,130 +1,98 @@
----
-title: TechNova Attrition API
-emoji: 📉
-colorFrom: indigo
-colorTo: blue
-sdk: docker
-app_port: 7860
-pinned: false
----
+## 🗄️ Base de données
 
-# TechNova Attrition API
+L'API stocke chaque prédiction et surveille son propre fonctionnement dans une
+base **PostgreSQL** (hébergée sur **Neon**, un service managé dans le cloud).
+La connexion est fournie via la variable d'environnement `DATABASE_URL`
+(stockée en secret, jamais dans le code). En local et en intégration continue,
+l'application bascule automatiquement sur une base **SQLite** de test.
 
-Déploiement en production d'un modèle de Machine Learning de **prédiction de l'attrition** (probabilité de démission d'un employé), pour le client **Futurisys** / **TechNova Partners**.
+### Schéma relationnel
 
-Le modèle est exposé via une API REST (FastAPI), testée (Pytest), versionnée (Git), adossée à une base PostgreSQL et déployée via un pipeline CI/CD.
-
-> **État du projet :** étape 1 — mise en place du dépôt et de la structure. Les briques API, tests, base de données et CI/CD sont présentes sous forme de squelette et seront implémentées aux étapes suivantes.
-
----
-
-## Table des matières
-
-1. [Présentation](#présentation)
-2. [Architecture du projet](#architecture-du-projet)
-3. [Installation](#installation)
-4. [Utilisation](#utilisation)
-5. [Déploiement](#déploiement)
-6. [Authentification](#authentification)
-7. [Sécurisation](#sécurisation)
-8. [Tests](#tests)
-9. [Conventions Git](#conventions-git)
-
----
-
-## Présentation
-
-Le modèle, issu du projet d'analyse d'attrition, prend en entrée les caractéristiques d'un employé (données SIRH, évaluations de performance, réponses au sondage interne) et renvoie une **probabilité de démission**. L'objectif de ce projet est de rendre ce modèle **utilisable en production** via une API performante, fiable et sécurisée, dans le respect des bonnes pratiques d'ingénierie logicielle.
-
-**Stack technique :** Python · FastAPI · scikit-learn · PostgreSQL · Pytest · GitHub Actions.
-
-## Architecture du projet
-
-```
-technova-attrition-api/
-├── app/                    # Code de l'API FastAPI
-│   ├── main.py             # Point d'entrée (création de l'app, routes)
-│   ├── config.py           # Configuration via variables d'environnement
-│   ├── schemas.py          # Schémas Pydantic (entrée / sortie)
-│   ├── model.py            # Chargement du modèle + prédiction
-│   ├── security.py         # Authentification (JWT)
-│   └── routers/            # Endpoints regroupés par domaine
-├── ml/                     # Code Machine Learning
-│   ├── features.py         # Feature engineering (partagé entraînement/API)
-│   └── train.py            # Entraînement + sérialisation du modèle
-├── db/                     # Base de données
-│   ├── schema.sql          # Définition des tables
-│   └── create_db.py        # Script de création de la base
-├── tests/                  # Tests unitaires et fonctionnels (Pytest)
-├── models/                 # Artefacts de modèles entraînés (non versionnés)
-├── docs/                   # Documentation (schéma de données, etc.)
-├── .github/workflows/      # Pipelines CI/CD (GitHub Actions)
-├── requirements.txt        # Dépendances Python
-├── .env.example            # Modèle de configuration (à copier en .env)
-└── .gitignore
+```mermaid
+erDiagram
+    DATASET ||--o{ PREDICTION : "employee_id"
+    PREDICTION ||--o{ MONITORING_APPLICATIF : "prediction_id"
+    DATASET {
+        int employee_id PK
+        int age
+        string genre
+        int revenu_mensuel
+        int cible "a quitté (0/1)"
+    }
+    PREDICTION {
+        int id PK
+        int employee_id FK
+        json features
+        float probabilite_demission
+        int prediction
+        bool risque
+        float seuil
+        datetime created_at
+    }
+    MONITORING_APPLICATIF {
+        int id PK
+        int prediction_id FK
+        string endpoint
+        int code_http
+        float temps_reponse_ms
+        datetime created_at
+    }
 ```
 
-## Installation
+> Le schéma est aussi disponible en image : [`docs/schema_bdd.png`](docs/schema_bdd.png).
 
-**Prérequis :** Python 3.11+, PostgreSQL, Git.
+### Les trois tables
 
-```bash
-# 1. Cloner le dépôt
-git clone <url-du-depot>
-cd technova-attrition-api
+| Table | Rôle | Clé primaire | Clé étrangère |
+|-------|------|--------------|----------------|
+| **`dataset`** | Données de référence du Projet 4 (les 3 fichiers RH joints), utilisées comme historique | `employee_id` | — |
+| **`prediction`** | Une ligne par appel à `/predict` : les données d'entrée (`features`) et le résultat du modèle | `id` | `employee_id` → `dataset` |
+| **`monitoring_applicatif`** | Métriques techniques de chaque appel : temps de réponse et code HTTP | `id` | `prediction_id` → `prediction` |
 
-# 2. Créer et activer un environnement virtuel
-python -m venv .venv
-source .venv/bin/activate        # Windows : .venv\Scripts\activate
+Les tables ne sont pas isolées : elles forment un **modèle relationnel**. Une
+prédiction peut être rattachée à un employé connu du `dataset`
+(`prediction.employee_id`), et chaque mesure de monitoring est rattachée à sa
+prédiction (`monitoring_applicatif.prediction_id`). On peut donc, pour n'importe
+quelle prédiction, retrouver l'employé concerné **et** les métriques de l'appel.
 
-# 3. Installer les dépendances
-pip install -r requirements.txt
+### Parcours d'une requête : input → prédiction → monitoring
 
-# 4. Configurer l'environnement
-cp .env.example .env             # puis renseigner vos valeurs
-```
+1. **Input** — le client envoie les données d'un employé à `POST /predict`
+   (après authentification). Les entrées sont validées par Pydantic.
+2. **Prédiction** — le modèle calcule la probabilité de démission ; une ligne
+   est écrite dans **`prediction`** (les `features` reçues + le résultat).
+3. **Monitoring** — le temps de traitement et le code HTTP sont enregistrés dans
+   **`monitoring_applicatif`**, relié à la prédiction par `prediction_id`.
 
-## Utilisation
+L'écriture en base est protégée : si la base est momentanément indisponible, la
+prédiction est tout de même renvoyée au client (la journalisation n'interrompt
+jamais le service).
 
-```bash
-# Lancer l'API en local
-uvicorn app.main:app --reload
-```
+Les tables sont **créées automatiquement au démarrage** de l'application, et le
+`dataset` de référence est **ingéré** au premier lancement s'il est vide
+(voir `db/init_db.py`). Un script autonome `db/ingest.py` permet aussi de le
+faire manuellement.
 
-- API : `http://localhost:8000`
-- Documentation interactive (Swagger / OpenAPI) : `http://localhost:8000/docs`
-- Vérification de l'état : `GET /health`
+### À quoi servent les données enregistrées (usage analytique)
 
-> L'endpoint de prédiction (`POST /predict`) et les schémas de données seront documentés ici une fois l'étape API réalisée.
+Journaliser les prédictions et les métriques n'est pas qu'une trace : c'est la
+base d'un **suivi en production** du modèle et de l'API.
 
-## Déploiement
+À partir de la table **`prediction`**, on peut :
+- suivre la **proportion d'employés jugés à risque** dans le temps, et la comparer
+  au taux réel observé dans le `dataset` (`cible`) pour estimer la pertinence ;
+- détecter une **dérive des données** (*data drift*) : si la distribution des
+  `features` reçues s'éloigne de celle des données d'entraînement, c'est un signal
+  qu'il faudra ré-entraîner le modèle ;
+- analyser **quels profils** sont le plus souvent classés à risque (par poste,
+  département, ancienneté…).
 
-Le déploiement est automatisé via GitHub Actions (voir `.github/workflows/`). Le pipeline gère les environnements **dev / test / prod** et la **gestion des secrets**.
+À partir de la table **`monitoring_applicatif`**, on peut :
+- surveiller la **santé de l'API** : temps de réponse moyen, pics de latence,
+  taux de codes d'erreur (autres que 200) ;
+- suivre le **volume d'utilisation** (nombre d'appels par jour) ;
+- déclencher une **alerte** si les temps de réponse ou les erreurs augmentent.
 
-> Procédure de déploiement détaillée à compléter à l'étape CI/CD.
-
-## Authentification
-
-L'accès aux endpoints sensibles est protégé par **JWT** (JSON Web Token). Un client s'authentifie pour obtenir un token, qu'il joint ensuite à ses requêtes via l'en-tête `Authorization: Bearer <token>`.
-
-> Détails (obtention du token, durée de validité) à compléter à l'étape API/sécurité.
-
-## Sécurisation
-
-- Les secrets (clé JWT, identifiants de base de données) ne sont **jamais** versionnés : ils passent par le `.env` local (ignoré par Git) et par les **GitHub Secrets** en CI/CD.
-- Les entrées de l'API sont validées par Pydantic (typage strict, rejet des données malformées).
-- Les communications doivent passer par HTTPS en production.
-
-## Tests
-
-```bash
-# Lancer la suite de tests
-pytest
-
-# Avec rapport de couverture
-pytest --cov=app --cov=ml --cov-report=term-missing
-```
-
-## Conventions Git
-
-Voir [`CONTRIBUTING.md`](CONTRIBUTING.md) pour le détail des conventions de **branches**, de **commits** et de **tags**.
+En combinant les deux tables (jointure sur `prediction_id`), on relie **la qualité
+métier** (les prédictions) à **la qualité technique** (la performance de l'API) —
+ce qui constitue un vrai socle de *monitoring* pour un modèle en production.
