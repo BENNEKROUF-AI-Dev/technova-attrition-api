@@ -22,17 +22,19 @@ jobs:
           git config --global user.email "ci@github.com"
           git config --global user.name "GitHub Actions"
 
-          # Supprimer le PNG du répertoire de travail
+          # Supprimer tous les fichiers binaires problématiques
           rm -f docs/schema_bdd.png
+          rm -f schema_bdd.png
+          rm -f schema_bdd.dot
 
           # Créer une branche orpheline (sans historique)
           git checkout --orphan hf-deploy
 
-          # Stager tous les fichiers sauf le PNG
+          # Stager tous les fichiers
           git add .
           git commit -m "chore: deploy to Hugging Face"
 
-          # Pousser la branche orpheline sur main HF
+          # Pousser vers HF
           git push --force \
             "https://${HF_USERNAME}:${HF_TOKEN}@huggingface.co/spaces/${HF_USERNAME}/${HF_SPACE}.git" \
             hf-deploy:main
