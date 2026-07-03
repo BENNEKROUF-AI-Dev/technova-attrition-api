@@ -1,3 +1,20 @@
+---
+title: TechNova Attrition API
+emoji: 🤖
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
+# TechNova Attrition API
+
+API de prédiction du risque de démission des employés (projet TechNova / Futurisys).
+
+- **Dépôt** : https://github.com/BENNEKROUF-AI-Dev/technova-attrition-api
+- **API en ligne** : https://bennekrouf-technova-attrition-api.hf.space
+- **Endpoints** : `/health` (public), `/token` (login), `/predict` (protégé JWT), `/docs` (Swagger)
+
 ## 🗄️ Base de données
 
 L'API stocke chaque prédiction et surveille son propre fonctionnement dans une
