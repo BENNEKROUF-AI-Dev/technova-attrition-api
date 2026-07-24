@@ -1,0 +1,28 @@
+erDiagram
+    DATASET ||--o{ PREDICTION : "employee_id"
+    PREDICTION ||--o{ MONITORING_APPLICATIF : "prediction_id"
+    DATASET {
+        int employee_id PK
+        int age
+        string genre
+        int revenu_mensuel
+        int cible
+    }
+    PREDICTION {
+        int id PK
+        int employee_id FK
+        json features
+        float probabilite_demission
+        int prediction
+        bool risque
+        float seuil
+        datetime created_at
+    }
+    MONITORING_APPLICATIF {
+        int id PK
+        int prediction_id FK
+        string endpoint
+        int code_http
+        float temps_reponse_ms
+        datetime created_at
+    }
